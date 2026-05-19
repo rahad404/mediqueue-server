@@ -41,3 +41,15 @@ app.post('/test-user', async (req, res) => {
       res.status(500).send('Error creating test user');
    }
 })
+
+// get all test user api
+app.get("/test-user", async (req, res) =>{
+   try{
+      const testUsers = await TestUser.find();
+      res.status(200).json(testUsers);
+   }
+   catch(e){
+      console.error('Error getting all test user', e);
+      res.status(500).send('Error getting all test user');
+   }
+})
