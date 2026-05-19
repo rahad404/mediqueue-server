@@ -53,3 +53,15 @@ app.get("/test-user", async (req, res) =>{
       res.status(500).send('Error getting all test user');
    }
 })
+
+app.get("/test-user/:id", async (req, res) =>{
+   try{
+      const {id} = req.params;
+      const testUsers = await TestUser.findById(id);
+      res.status(200).json(testUsers);
+   }
+   catch(e){
+      console.error('Error finding test user by id', e);
+      res.status(500).send('Error finding test user by id');
+   }
+})
