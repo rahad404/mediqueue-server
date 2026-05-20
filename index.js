@@ -4,8 +4,12 @@ require('dotenv').config();
 const express = require('express')
 const app = express()
 const port = process.env.PORT || 5000
-app.use(express.json()) // for parsing application/json
 
+// middleware
+app.use(express.json());
+app.use(express.urlencoded({extended: false}));
+
+// database connection
 const mongoose = require('mongoose');
 const TestUser = require('./models/test-user.model');
 
@@ -66,7 +70,6 @@ app.get("/test-user/:id", async (req, res) =>{
       res.status(500).send('Error finding test user by id');
    }
 });
-
 
 // update test user by id api
 app.put("/test-user/:id", async (req, res) =>{
