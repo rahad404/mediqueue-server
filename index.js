@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const express = require('express')
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const app = express()
 
@@ -36,11 +36,36 @@ async function run() {
          res.send('express server is running!')
       });
 
+      
+      //---------------- tutor api endpoints ----------------
+      
       // create a tutor
       app.post("/tutors", async (req, res) => {
          const tutor = req.body;
-         const result = await tutorCollection.insertOne(tutor)
+         const result = await tutorCollection.insertOne(tutor);
+         console.log(result);
+
+         res.status(201).json(result);
+      });
+
+      // get all tutors
+      app.get("tutors", async (req, res) => {
+         const tutors = await tutorCollection.find().toArray();
+         console.log(tutors);
+
+         res.status(200).json(tutors);
+      });
+
+      //get a tutor by id
+      app.get("tutors/:id", async (req, res) => {
+         const { id } = req.params;
+         const tutor = await tutorCollection.findOne({ _id: new ObjectId(id)});
+         console.log(tutor);
+         
+         res.status(200).json(tutor);
       })
+
+      
    }
    catch (error) {
       console.error("Database connection failed:", error);
