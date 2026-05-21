@@ -2,7 +2,7 @@
 Programming Hero  |  Batch-13  |  Assignment-9  |  CAT-2  |  MediQueue  |  Tutor Booking System
 
 initialized with:
-```npm i express cors dotenv mongoose jsonwebtoken```
+```npm i express cors dotenv ```
 
 
 

@@ -1,92 +1,55 @@
-// install dotenv and then add this line to use .env file variable in code
 require('dotenv').config();
 
 const express = require('express')
+const cors = require('cors');
+const { MongoClient, ServerApiVersion } = require('mongodb');
+
 const app = express()
-const port = process.env.PORT || 5000
 
 // middleware
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({extended: false}));
+app.use(express.urlencoded({ extended: false }));
 
-// database connection
-const mongoose = require('mongoose');
-const TestUser = require('./models/test-user.model');
+const port = process.env.PORT || 5000
+const uri = process.env.MONGODB_URI;
 
-// mongodb connection
-mongoose.connect(process.env.MONGODB_URI)
-   .then(() => {
-      console.log('Connected to MongoDB');
-
-      // Start the server after successful connection to MongoDB
-      // but we could add it before the connection as well, it will work either way 
-      app.listen(port, () => {
-         console.log(`Example app listening on port ${port}`)
-      })
-   })
-   .catch((e) => {
-      console.error('Error connecting to MongoDB', e);
-   });
-
-
-app.get('/', (req, res) => {
-   res.send('express server is running!')
+const client = new MongoClient(uri, {
+   serverApi: {
+      version: ServerApiVersion.v1,
+      strict: true,
+      deprecationErrors: true,
+   }
 });
 
-// test user creation route
-app.post('/test-user', async (req, res) => {
+
+async function run() {
    try {
-      const testUser = await TestUser.create(req.body);
-      console.log(testUser);
-      res.status(200).json(testUser);
-   }
-   catch (e){
-      console.error('Error creating test user', e);
-      res.status(500).send('Error creating test user');
-   }
-});
+      await client.connect();
+      console.log("Connected successfully to MongoDB!");
 
-// get all test user api
-app.get("/test-user", async (req, res) =>{
-   try{
-      const testUsers = await TestUser.find();
-      res.status(200).json(testUsers);
-   }
-   catch(e){
-      console.error('Error getting all test user', e);
-      res.status(500).send('Error getting all test user');
-   }
-});
+      const db = client.db('mediqueue');
+      const tutorCollection = db.collection('tutors');
+      const bookingCollection = db.collection('bookings');
 
-// get tesst user by id api
-app.get("/test-user/:id", async (req, res) =>{
-   try{
-      const {id} = req.params;
-      const testUser = await TestUser.findById(id);
-      res.status(200).json(testUser);
-   }
-   catch(e){
-      console.error('Error finding test user by id', e);
-      res.status(500).send('Error finding test user by id');
-   }
-});
+      app.get('/', (req, res) => {
+         res.send('express server is running!')
+      });
 
-// update test user by id api
-app.put("/test-user/:id", async (req, res) =>{
-   try{
-      const {id} = req.params;
-      const testUser = await TestUser.findByIdAndUpdate(id, req.body);
-
-      if(!testUser){
-         return res.status(404).send({message: "test user not found"});
-      }
-
-      const updatedtestUser = await TestUser.findById(id);
-      res.status(200).json(updatedtestUser);
+      // create a tutor
+      app.post("/tutors", async (req, res) => {
+         const tutor = req.body;
+         const result = await tutorCollection.insertOne(tutor)
+      })
    }
-   catch(e){
-      console.error('Error updating test user', e);
-      res.status(500).send('Error updating test user');
+   catch (error) {
+      console.error("Database connection failed:", error);
    }
-});
+}
+run().catch(console.dir);
 
+
+// Start the Express server
+app.listen(port, () => {
+   console.log(`App listening on port ${port}`)
+})
