@@ -59,8 +59,27 @@ async function run() {
 
         // Search tutor name (case-insensitive)
         if (search?.trim()) {
+          const q = search.trim();
+
+          // text regex for common text fields
+          const textRegex = { $regex: q, $options: "i" };
+
+          // if the query looks like a number, include numeric matches
+          const num = !isNaN(Number(q)) ? Number(q) : null;
+
           conditions.push({
-            tutorName: { $regex: search.trim(), $options: "i" },
+            $or: [
+              { tutorName: textRegex },
+              { subject: textRegex },
+              { location: textRegex },
+              { teachingMode: textRegex },
+              { institution: textRegex },
+              { experience: textRegex },
+              { availableDays: textRegex },
+              { availableTime: textRegex },
+              // numeric fields (exact match)
+              ...(num !== null ? [{ hourlyFee: num }, { totalSlots: num }] : [])
+            ]
           });
         }
 
