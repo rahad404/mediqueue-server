@@ -216,7 +216,32 @@ async function run() {
         console.error("Error deleting tutor:", error);
         res.status(500).json({ message: "Failed to delete tutor." });
       }
-    })
+    });
+
+    // ------------------ Bookings -------------------
+    // Get all bookings
+    app.get("/bookings", async (req, res) => {
+      try {
+        const bookings = await bookingCollection.find().toArray();
+        res.status(200).json(bookings);
+      } catch (error) {
+        console.error("Error fetching bookings:", error);
+        res.status(500).json({ message: "Failed to fetch bookings." });
+      }
+    });
+
+    // get all booking by login user email
+    app.get("/bookings/:email", async (req, res) => {
+      try {
+        const { email } = req.params;
+        const bookings = await bookingCollection.find({ studentEmail: email }).toArray();
+        res.status(200).json(bookings);
+      }
+      catch (error) {
+        console.error("Error fetching bookings:", error);
+        res.status(500).json({ message: "Failed to fetch bookings." });
+      }
+    });
 
   } catch (error) {
     console.error("Database connection failed:", error);
