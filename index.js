@@ -220,7 +220,7 @@ async function run() {
       }
     });
 
-    // ------------------ Bookings -------------------
+    // ------------------ Bookings routs -------------------
     // Get all bookings
     app.get("/bookings", async (req, res) => {
       try {
@@ -246,9 +246,10 @@ async function run() {
       }
     });
 
+    // creat booking
     app.post("/bookings", async (req, res) => {
       try {
-        const { tutorId, studentName, studentEmail, studentPhone, tutorName } =
+        const { tutorId, tutorName, studentName, studentEmail, studentPhone} =
           req.body;
         const tutor = await tutorCollection.findOne({
           _id: new ObjectId(tutorId),
@@ -273,9 +274,10 @@ async function run() {
           const currentDate = new Date();
           const sessionDate = new Date(tutor.sessionStartDate);
 
-          if (currentDate < sessionDate) {
+          // reject if the session has already started/passed
+          if (currentDate > sessionDate) {
             return res.status(400).json({
-              message: "Booking is not available yet for this tutor.",
+              message: "Booking is no longer available for this tutor.",
             });
           }
         }
