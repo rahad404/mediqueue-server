@@ -130,7 +130,7 @@ async function run() {
         // final query
         const finalQuery = conditions.length ? { $and: conditions } : {};
 
-        let cursor = tutorCollection.find(finalQuery);
+        let cursor = tutorCollection.find(finalQuery).sort({ _id: -1 });
 
         // to get limited tutor
         if (limit) {
@@ -152,6 +152,7 @@ async function run() {
         const { email } = req.params;
         const tutors = await tutorCollection
           .find({ createdBy: email })
+          .sort({ _id: -1 })
           .toArray();
         res.status(200).json(tutors);
       } catch (error) {
@@ -203,7 +204,7 @@ async function run() {
     });
 
     // Delete: /tutor/:id
-    app.delete("/tutor/:id", async (req, res) => {
+    app.delete("/tutors/:id", async (req, res) => {
       try {
         const { id } = req.params;
         const result = await tutorCollection.deleteOne({
