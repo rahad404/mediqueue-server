@@ -187,15 +187,16 @@ async function run() {
 
         const result = await tutorCollection.updateOne(
           { _id: new ObjectId(id) },
-          { $set: updates }
+          { $set: updates },
         );
 
         if (result.modifiedCount === 0) {
-          return res.status(404).json({ message: "Tutor not found or no changes made." });
+          return res
+            .status(404)
+            .json({ message: "Tutor not found or no changes made." });
         }
         res.status(200).json({ message: "Tutor updated successfully." });
-      }
-      catch (error) {
+      } catch (error) {
         console.error("Error updating tutor:", error);
         res.status(500).json({ message: "Failed to update tutor." });
       }
@@ -205,14 +206,15 @@ async function run() {
     app.delete("/tutor/:id", async (req, res) => {
       try {
         const { id } = req.params;
-        const result = await tutorCollection.deleteOne({ _id: new ObjectId(id) });
+        const result = await tutorCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
 
         if (result.deletedCount === 0) {
           return res.status(404).json({ message: "Tutor not found." });
         }
         res.status(200).json({ message: "Tutor deleted successfully." });
-      }
-      catch (error) {
+      } catch (error) {
         console.error("Error deleting tutor:", error);
         res.status(500).json({ message: "Failed to delete tutor." });
       }
@@ -234,14 +236,79 @@ async function run() {
     app.get("/bookings/:email", async (req, res) => {
       try {
         const { email } = req.params;
-        const bookings = await bookingCollection.find({ studentEmail: email }).toArray();
+        const bookings = await bookingCollection
+          .find({ studentEmail: email })
+          .toArray();
         res.status(200).json(bookings);
-      }
-      catch (error) {
+      } catch (error) {
         console.error("Error fetching bookings:", error);
         res.status(500).json({ message: "Failed to fetch bookings." });
       }
     });
+
+    app.post("/bookings", async (req, res) => {
+      try {
+        const { tutorId, studentName, studentEmail, studentPhone, tutorName } =
+          req.body;
+        const tutor = await tutorCollection.findOne({
+          _id: new ObjectId(tutorId),
+        });
+        if (!tutor) {
+          return res
+            .status(404)
+            .json({ message: "Requested instructor profile does not exist." });
+        }
+
+        // check available slot
+        const totalSlotsLeft = Number(tutor.totalSlots || 0);
+        if (totalSlotsLeft <= 0) {
+          return res.status(400).json({
+            message:
+              "This session is fully booked. You can't join at the moment. No available slots left.",
+          });
+        }
+
+        // check start day over or not
+        if (tutor.sessionStartDate) {
+          const currentDate = new Date();
+          const sessionDate = new Date(tutor.sessionStartDate);
+
+          if (currentDate < sessionDate) {
+            return res.status(400).json({
+              message: "Booking is not available yet for this tutor.",
+            });
+          }
+        }
+
+        const newBooking = {
+          tutorId: new ObjectId(tutorId),
+          tutorName,
+          studentName,
+          studentEmail,
+          studentPhone,
+          bookingStatus: "Review Pending",
+          createdAt: new Date(),
+        };
+
+        const bookingResult = await bookingCollection.insertOne(newBooking);
+
+        await tutorCollection.updateOne(
+          { _id: new ObjectId(tutorId) },
+          { $inc: { totalSlots: -1 } },
+        );
+
+        res.status(201).json({
+          success: true,
+          message: "Booking confirmed successfully, space allocated.",
+          bookingId: bookingResult.insertedId,
+        });
+      } catch (error) {
+        console.error("Error creating booking:", error);
+        res.status(500).json({ message: "Failed to create booking." });
+      }
+    });
+
+
 
   } catch (error) {
     console.error("Database connection failed:", error);
