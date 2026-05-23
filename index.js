@@ -308,7 +308,35 @@ async function run() {
       }
     });
 
+    app.patch("/bookings/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { bookingStatus } = req.body;
 
+        const booking = await bookingCollection.findOne({_id: new ObjectId(id)});
+        if (!booking) {
+          return res.status(404).json({ message: "Booking not found." });
+        }
+
+        const result = await bookingCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { bookingStatus } }
+        );
+
+        // If the student is cancelling, give the slot back to the tutor
+        if (bookingStatus === "cancelled") {
+          await tutorCollection.updateOne(
+            { _id: new ObjectId(booking.tutorId) },
+            { $inc: { totalSlots: 1 } }
+          );
+        }
+
+        res.status(200).json({ message: "Booking status updated successfully." });
+      } catch (error) {
+        console.error("Error updating booking:", error);
+        res.status(500).json({ message: "Failed to update booking status." });
+      }
+    });
 
   } catch (error) {
     console.error("Database connection failed:", error);
