@@ -57,7 +57,7 @@ async function run() {
         // build conditions array to combine search + date-range cleanly
         const conditions = [];
 
-        // Search tutor name (case-insensitive)
+        // Search tutor name or other feild (case-insensitive)
         if (search?.trim()) {
           const q = search.trim();
 
@@ -78,8 +78,10 @@ async function run() {
               { availableDays: textRegex },
               { availableTime: textRegex },
               // numeric fields (exact match)
-              ...(num !== null ? [{ hourlyFee: num }, { totalSlots: num }] : [])
-            ]
+              ...(num !== null
+                ? [{ hourlyFee: num }, { totalSlots: num }]
+                : []),
+            ],
           });
         }
 
@@ -169,13 +171,53 @@ async function run() {
         if (!tutor) {
           return res.status(404).json({ message: "Tutor not found." });
         }
-
         res.status(200).json(tutor);
       } catch (error) {
         console.error("Error fetching tutor:", error);
         res.status(500).json({ message: "Failed to fetch tutor." });
       }
     });
+
+    //Patch: tutors/:id  update tutor feield
+    app.patch("/tutors/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const updates = req.body;
+        delete updates._id;
+
+        const result = await tutorCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updates }
+        );
+
+        if (result.modifiedCount === 0) {
+          return res.status(404).json({ message: "Tutor not found or no changes made." });
+        }
+        res.status(200).json({ message: "Tutor updated successfully." });
+      }
+      catch (error) {
+        console.error("Error updating tutor:", error);
+        res.status(500).json({ message: "Failed to update tutor." });
+      }
+    });
+
+    // Delete: /tutor/:id
+    app.delete("/tutor/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const result = await tutorCollection.deleteOne({ _id: new ObjectId(id) });
+
+        if (result.deletedCount === 0) {
+          return res.status(404).json({ message: "Tutor not found." });
+        }
+        res.status(200).json({ message: "Tutor deleted successfully." });
+      }
+      catch (error) {
+        console.error("Error deleting tutor:", error);
+        res.status(500).json({ message: "Failed to delete tutor." });
+      }
+    })
+
   } catch (error) {
     console.error("Database connection failed:", error);
   }
