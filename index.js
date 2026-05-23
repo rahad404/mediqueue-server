@@ -53,21 +53,63 @@ async function run() {
     app.get("/tutors", async (req, res) => {
       try {
         const { search, startDate, endDate, limit } = req.query;
-        const query = {};
 
-        // Search tutor name
+        // build conditions array to combine search + date-range cleanly
+        const conditions = [];
+
+        // Search tutor name (case-insensitive)
         if (search?.trim()) {
-          query.tutorName = { $regex: search.trim(), $options: "i",};
+          conditions.push({
+            tutorName: { $regex: search.trim(), $options: "i" },
+          });
         }
 
         // Date range
         if (startDate || endDate) {
-          query.sessionDate = {};
-          if (startDate) { query.sessionDate.$gte = new Date(`${startDate}T00:00:00.000Z`); }
-          if (endDate) { query.sessionDate.$lte = new Date(`${endDate}T23:59:59.999Z`); }
+          // parse and validate
+          let sd, ed;
+          if (startDate) {
+            sd = new Date(startDate);
+            if (isNaN(sd))
+              return res.status(400).json({ message: "Invalid startDate" });
+            if (/^\d{4}-\d{2}-\d{2}$/.test(req.query.startDate))
+              sd.setHours(0, 0, 0, 0);
+          }
+          if (endDate) {
+            ed = new Date(endDate);
+            if (isNaN(ed))
+              return res.status(400).json({ message: "Invalid endDate" });
+            if (/^\d{4}-\d{2}-\d{2}$/.test(req.query.endDate))
+              ed.setHours(23, 59, 59, 999);
+          }
+
+          // build range objects
+          const dateRange = {};
+          const stringRange = {};
+          if (sd) {
+            dateRange.$gte = sd;
+            stringRange.$gte = sd.toISOString();
+          }
+          if (ed) {
+            dateRange.$lte = ed;
+            stringRange.$lte = ed.toISOString();
+          }
+
+          // support both BSON Date (actual Date) and ISO string stored values
+          const rangeCondition = {
+            $or: [
+              { sessionStartDate: dateRange }, // when field is stored as Date
+              { sessionStartDate: stringRange }, // when field is stored as ISO string
+            ],
+          };
+
+          conditions.push(rangeCondition);
         }
 
-        let cursor = tutorCollection.find(query);
+        // final query
+        const finalQuery = conditions.length ? { $and: conditions } : {};
+
+        let cursor = tutorCollection.find(finalQuery);
 
         // to get limited tutor
         if (limit) {
@@ -79,20 +121,16 @@ async function run() {
         res.status(200).json(tutors);
       } catch (error) {
         console.error("Error fetching tutors:", error);
-
-        res.status(500).json({
-          message: "Failed to fetch tutors.",
-        });
+        res.status(500).json({ message: "Failed to fetch tutors." });
       }
     });
 
     // GET: /tutors/user/:email — Get all tutors added by a specific user (My Tutors page)
-    // NOTE: this route must be defined BEFORE /tutors/:id so ":id" doesn't swallow "user"
     app.get("/tutors/user/:email", async (req, res) => {
       try {
         const { email } = req.params;
         const tutors = await tutorCollection
-          .find({ userEmail: email })
+          .find({ createdBy: email })
           .toArray();
         res.status(200).json(tutors);
       } catch (error) {
