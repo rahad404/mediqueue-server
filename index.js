@@ -382,38 +382,42 @@ async function run() {
       }
     });
 
-    // update booking status api route
+    // PATCH: /bookings/:id - Cancel a booking and release tutor slot
     app.patch("/bookings/:id", verifyToken, async (req, res) => {
       try {
         const { id } = req.params;
         const { bookingStatus } = req.body;
 
-        const booking = await bookingCollection.findOne({
-          _id: new ObjectId(id),
-        });
+        // 1. Find the booking profile first
+        const booking = await bookingCollection.findOne({_id: new ObjectId(id),});
+
         if (!booking) {
           return res.status(404).json({ message: "Booking not found." });
         }
 
-        const result = await bookingCollection.updateOne(
-          { _id: new ObjectId(id) },
-          { $set: { bookingStatus } },
-        );
+        if (booking.bookingStatus === "cancelled") {
+          return res.status(400).json({ message: "This session is already cancelled." });
+        }
 
-        // If the student is cancelling, give the slot back to the tutor
-        if (bookingStatus === "cancelled") {
+        // 3. Update the booking status
+        const result = await bookingCollection.updateOne({ _id: new ObjectId(id) },{ $set: { bookingStatus } });
+
+        // 4. Safely return the slot to the tutor
+        if (bookingStatus === "cancelled" && booking.tutorId) {
           await tutorCollection.updateOne(
             { _id: new ObjectId(booking.tutorId) },
-            { $inc: { totalSlots: 1 } },
+            { $inc: { totalSlots: 1 } }
           );
         }
 
-        res
-          .status(200)
-          .json({ message: "Booking status updated successfully." });
+        return res.status(200).json({
+          message: "Booking status updated successfully.",
+          bookingStatus: "cancelled"
+        });
+
       } catch (error) {
         console.error("Error updating booking:", error);
-        res.status(500).json({ message: "Failed to update booking status." });
+        return res.status(500).json({ message: "Failed to update booking status." });
       }
     });
   } catch (error) {
