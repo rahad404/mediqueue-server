@@ -52,8 +52,8 @@ const verifyToken = async (req, res, next) => {
 
 async function run() {
   try {
-    await client.connect();
-    console.log("Connected successfully to MongoDB!");
+    // await client.connect();
+    // console.log("Connected successfully to MongoDB!");
 
     const db = client.db("mediqueue");
     const tutorCollection = db.collection("tutors");
