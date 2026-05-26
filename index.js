@@ -8,11 +8,7 @@ const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 const app = express();
 
 // middleware
-app.use(cors({
-  origin: process.env.CLIENT_URL,
-  methods: ["GET", "POST", "PATCH", "DELETE", "PUT", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
