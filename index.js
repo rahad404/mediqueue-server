@@ -224,7 +224,6 @@ async function run() {
           { $set: updates },
           { returnDocument: "after" }
         );
-
         if (!result) return res.status(404).json({ message: "Tutor profile not found." });
 
         res.status(200).json({ message: "Tutor updated successfully.", tutor: result });
