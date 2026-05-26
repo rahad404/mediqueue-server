@@ -251,19 +251,23 @@ async function run() {
       try {
         const { id } = req.params;
         const updates = req.body;
+
         delete updates._id;
 
-        const result = await tutorCollection.updateOne(
+        const result = await tutorCollection.findOneAndUpdate(
           { _id: new ObjectId(id) },
           { $set: updates },
+          { returnDocument: "after" }
         );
 
-        if (result.modifiedCount === 0) {
-          return res
-            .status(404)
-            .json({ message: "Tutor not found or no changes made." });
+        if (!result) {
+          return res.status(404).json({ message: "Tutor profile not found." });
         }
-        res.status(200).json({ message: "Tutor updated successfully." });
+
+        res.status(200).json({
+          message: "Tutor updated successfully.",
+          tutor: result
+        });
       } catch (error) {
         console.error("Error updating tutor:", error);
         res.status(500).json({ message: "Failed to update tutor." });
